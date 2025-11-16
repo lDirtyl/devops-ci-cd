@@ -6,6 +6,7 @@ resource "aws_vpc" "main" {
 
   tags = {
     Name = "${var.vpc_name}-vpc"
+    Environment = "lesson-7"
   }
 }
 
@@ -19,7 +20,8 @@ resource "aws_subnet" "public" {
 
   tags = {
     Name = "${var.vpc_name}-public-subnet-${count.index + 1}"
-    
+    Environment = "lesson-7"
+    Type        = "Public"
   }
 }
 
@@ -32,6 +34,8 @@ resource "aws_subnet" "private" {
 
   tags = {
     Name = "${var.vpc_name}-private-subnet-${count.index + 1}" 
+    Environment = "lesson-7"
+    Type        = "Private"
   }
 }
 
@@ -41,5 +45,6 @@ resource "aws_internet_gateway" "igw" {
 
   tags = {
     Name = "${var.vpc_name}-igw"
+    Environment = "lesson-7"
   }
 }
