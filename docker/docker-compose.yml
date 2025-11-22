@@ -5,12 +5,11 @@ services:
     build:
       context: ./django
     container_name: django_app
+    env_file:
+      - .env
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./django:/app
-    environment:
-      - DEBUG=1
-      - DATABASE_URL=postgresql://django_user:pas48159cf@db:5432/django_db
     ports:
       - "8000:8000"
     depends_on:
@@ -19,10 +18,8 @@ services:
   postgres:
     image: postgres:14
     container_name: postgres_db
-    environment:
-      POSTGRES_DB: django_db
-      POSTGRES_USER: django_user
-      POSTGRES_PASSWORD: pas48159cf
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -32,7 +29,7 @@ services:
     image: nginx:latest
     container_name: nginx
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - ./nginx:/etc/nginx/conf.d
     depends_on:

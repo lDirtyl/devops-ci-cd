@@ -1,31 +1,87 @@
-# Home Assignment: "Helm Learning"
+# Home Assignment: "Argo CD + CD Learning"
+
+## Prerequisites
+
+Before starting, ensure you have the following tools installed:
+
+### Required Software
+
+1. **Terraform** (>= 1.0)
+
+   ```bash
+   # Download from https://www.terraform.io/downloads
+   # Or use package manager:
+   # Windows (Chocolatey): choco install terraform
+   # macOS (Homebrew): brew install terraform
+   # Linux: Check your distribution's package manager
+   ```
+
+2. **AWS CLI** (v2 recommended)
+
+   ```bash
+   # Download from https://aws.amazon.com/cli/
+   # Configure with: aws configure
+   ```
+
+3. **kubectl**
+
+   ```bash
+   # Download from https://kubernetes.io/docs/tasks/tools/
+   # Or use package manager
+   ```
+
+4. **Helm** (v3.x)
+
+   ```bash
+   # Download from https://helm.sh/docs/intro/install/
+   # Or use package manager
+   ```
+
+5. **Docker**
+
+   ```bash
+   # Download from https://www.docker.com/get-started
+   ```
+
+6. **Git**
+   ```bash
+   # Download from https://git-scm.com/downloads
+   ```
+
+### AWS Account Requirements
+
+- AWS Account with appropriate permissions:
+  - EKS cluster creation
+  - EC2, VPC, ECR, S3, DynamoDB resources
+  - IAM role and policy management
+  - ECR push/pull permissions
+
+### GitHub Requirements
+
+- GitHub account
+- Personal Access Token (PAT) with the following permissions:
+  - `repo` (full control of private repositories)
+  - `workflow` (if using GitHub Actions)
 
 ## Assignment Description
 
-Create a Kubernetes cluster in the same network (VPC) configured in the previous
-homework assignment and implement the following components:
+Your goal is to implement a complete CI/CD process using Jenkins + Helm +
+Terraform + Argo CD, which:
 
-1. Create a Kubernetes cluster using Terraform.
+1. Automatically builds a Docker image for the Django application;
+2. Publishes the image to Amazon ECR;
+3. Updates the Helm chart in the repository with the correct tag;
+4. Synchronizes the application in the cluster through Argo CD, which picks up
+   changes from Git.
 
-2. Configure Elastic Container Registry (ECR) for storing the Docker image of
-   your Django application.
-
-3. Upload the Django Docker image to ECR.
-
-4. Create a Helm chart (`deployment.yaml`, `service.yaml`, `hpa.yaml`,
-   `configmap.yaml`).
-
-5. Migrate environment variables (env) from topic 4 to ConfigMap, which will be
-   used by your application.
+---
 
 ## Project Structure
 
 ```
-lesson-7/
-│
 ├── main.tf                  # Main file for connecting modules
 ├── backend.tf               # Backend configuration for state (S3 + DynamoDB)
-├── outputs.tf               # Resource outputs
+├── outputs.tf               # General resource outputs
 │
 ├── modules/                 # Directory with all modules
 │   │
@@ -46,11 +102,29 @@ lesson-7/
 │   │   ├── variables.tf     # Variables for ECR
 │   │   └── outputs.tf       # ECR repository URL output
 │   │
-│   └── eks/                 # Module for EKS cluster creation
-│       ├── eks.tf           # EKS and Node Groups creation
-│       ├── node.tf          # Worker nodes configuration
-│       ├── variables.tf     # Module variables
-│       └── outputs.tf       # Cluster parameters
+│   ├── eks/                 # Module for EKS cluster creation
+│   │   ├── eks.tf           # EKS and Node Groups creation
+│   │   ├── variables.tf     # Module variables
+│   │   └── outputs.tf       # Cluster parameters
+│   │
+│   ├── argo_cd/             # Module for Helm installation of Argo CD
+│   │   ├── argo_cd.tf       # Helm release for Argo CD
+│   │   ├── variables.tf     # Variables (chart version, namespace, repo URL, etc.)
+│   │   ├── providers.tf     # Kubernetes+Helm providers
+│   │   ├── values.yaml      # Custom Argo CD configuration
+│   │   ├── outputs.tf       # Outputs (hostname, initial admin password)
+│   │   └── charts/          # Helm chart for creating applications
+│   │       ├── Chart.yaml
+│   │       ├── values.yaml  # List of applications, repositories
+│   │       └── templates/
+│   │           ├── application.yaml
+│   │           └── repository.yaml
+│   │
+│   └── jenkins/             # Module for Helm installation of Jenkins
+│       ├── jenkins.tf       # Helm release for Jenkins
+│       ├── variables.tf     # Variables (resources, credentials, values)
+│       ├── values.yaml      # Jenkins configuration
+│       └── outputs.tf       # Outputs (URL, administrator password)
 │
 ├── charts/                  # Helm charts
 │   └── django-app/
@@ -60,37 +134,41 @@ lesson-7/
 │       │   ├── configmap.yaml     # Environment variables
 │       │   └── hpa.yaml           # Horizontal Pod Autoscaler
 │       ├── Chart.yaml             # Chart metadata
-│       └── values.yaml            # Configuration values
+│       └── values.yaml            # Configuration values (ConfigMap with environment variables)
 │
 └── README.md                # Project documentation
 ```
 
 ## Assignment Steps
 
-### 1. Create a Kubernetes Cluster
+### 1. Jenkins + Helm + Terraform
 
-- Using Terraform, create a Kubernetes cluster in the existing network (VPC).
-- Provide access to the cluster using `kubectl`.
+- Install Jenkins via Helm, automating the installation through Terraform.
+- Ensure Jenkins works through Kubernetes Agent (Kaniko + Git).
+- Implement a pipeline (via Jenkinsfile) that:
+  - Builds an image from Dockerfile;
+  - Pushes it to ECR;
+  - Updates the tag in values.yaml of another repository;
+  - Pushes changes to main.
 
-### 2. Configure ECR
+### 2. Argo CD + Helm + Terraform
 
-- Using Terraform, create a repository in Amazon Elastic Container Registry
-  (ECR).
-- Upload the Django Docker image that you created in topic 4 to ECR using AWS
-  CLI.
+- Install Argo CD via Helm using Terraform.
+- Configure Argo CD Application that monitors Helm chart updates.
+- Argo CD should automatically synchronize changes in the cluster after Git
+  updates.
 
-### 3. Create Helm Chart
+## Variable Configuration
 
-The Helm chart must implement:
+Create a `terraform.tfvars` file with the following variables:
 
-- **Deployment** — with Django image from ECR and ConfigMap connection (via
-  `envFrom`).
-- **Service** — of type `LoadBalancer` for external access.
-- **HPA (Horizontal Pod Autoscaler)** — scaling pods from 2 to 6 when load >
-  70%.
-- **ConfigMap** — for environment variables (migrated from topic 4).
-- **values.yaml** — with image, service, configuration, and autoscaler
-  parameters.
+```
+github_token  = <your github token>
+github_username  = <your github username>
+github_repo_url = "https://github.com/<repo>.git"
+```
+
+You can use `terraform.tfvars.example` as a reference.
 
 ## Commands for Initialization, Deployment, and Removal
 
@@ -112,74 +190,93 @@ terraform destroy
 
 ```bash
 # Connect to EKS cluster
-aws eks update-kubeconfig --region us-east-1 --name eks-cluster-lesson-7
+aws eks update-kubeconfig --region us-east-1 --name [EKS_CLUSTER_NAME]
 
 # Verify access
 kubectl get nodes
 ```
 
-## Docker Image Preparation
+## Uploading Docker Image to Newly Created ECR Repository
 
 ```bash
 # Navigate to Django project folder
 cd docker/django
 
 # Build image without cache
-docker build --no-cache -t lesson-7-django-app .
+docker build --no-cache -t django-app .
 
 # Login to ECR
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin [ACCOUNT_ID].dkr.ecr.us-east-1.amazonaws.com
 
 # Tag image
-docker tag lesson-7-django-app:latest [ACCOUNT_ID].dkr.ecr.us-east-1.amazonaws.com/lesson-7-django-app:latest
+docker tag django-app:latest [ACCOUNT_ID].dkr.ecr.us-east-1.amazonaws.com/django-app:latest
 
 # Push to ECR
-docker push [ACCOUNT_ID].dkr.ecr.us-east-1.amazonaws.com/lesson-7-django-app:latest
+docker push [ACCOUNT_ID].dkr.ecr.us-east-1.amazonaws.com/django-app:latest
 ```
 
-**Note**: Replace `[ACCOUNT_ID]` with your AWS account ID. You can get it from
-Terraform outputs:
+## Applying Helm Chart
 
 ```bash
-cd lesson-7
-terraform output
+cd charts/django-app
+helm install django-app .
 ```
 
-Or get the ECR repository URL directly:
+where `django-app` is your helm chart name.
+
+## Resource Removal
+
+### Kubernetes (PODs, Services, Deployments, etc.)
 
 ```bash
-terraform output -json | jq -r '.ecr_repository_url.value'
+helm uninstall django-app
 ```
 
-## Application Deployment via Helm
+where `django-app` is your helm chart name.
+
+### Terraform (EKS, VPC, ECR, etc.)
 
 ```bash
-cd lesson-7
-
-# Update values.yaml with your ECR repository URL
-# Edit charts/django-app/values.yaml and set the correct image.repository value
-
-# Install Helm chart
-helm install django-app ./charts/django-app
-
-# Check status
-helm status django-app
-kubectl get all
+terraform destroy
 ```
 
-## Check LoadBalancer External IP/DNS
+## Additional Information
+
+If you want to update the helm chart:
 
 ```bash
-kubectl get service django-app-django
+helm upgrade django-app .
 ```
 
-Wait for the `EXTERNAL-IP` to be assigned, then access the application:
+If you want to update terraform:
 
 ```bash
-curl http://<EXTERNAL-IP>
+terraform init -upgrade
+terraform plan
+terraform apply
 ```
 
-## Remote Backend Configuration
+### Accessing Jenkins
+
+```bash
+# Jenkins URL
+kubectl get services -n jenkins
+
+# Get initial Jenkins password
+kubectl exec --namespace jenkins -it svc/jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password && echo
+```
+
+### Accessing Argo CD
+
+```bash
+# Get Argo CD URL
+kubectl get services -n argocd
+
+# Get initial admin password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+### Remote Backend Configuration
 
 After initial deployment, to activate the remote backend:
 
@@ -191,9 +288,7 @@ After initial deployment, to activate the remote backend:
 terraform init -reconfigure
 ```
 
-## Recovery
-
-If you need to recover from a state issue:
+### Recovery
 
 1. Comment out the backend configuration in `backend.tf`.
 
@@ -203,289 +298,121 @@ If you need to recover from a state issue:
 
 4. Uncomment the backend and run `terraform init -reconfigure`.
 
-## Prerequisites
+## Git Repository Setup
 
-Before starting, ensure you have:
+### Initial Git Setup
 
-- **Terraform** >= 1.0
-- **AWS CLI** configured with appropriate credentials
-- **kubectl** installed
-- **Helm** 3.x installed
-- **Docker** installed
-- **AWS Account** with necessary permissions:
-  - EKS cluster creation
-  - EC2, VPC, ECR, S3, DynamoDB resources
-  - IAM role and policy management
-
-## Module Descriptions
-
-### S3 Backend Module
-
-Manages Terraform state storage and locking:
-
-- **S3 Bucket**: Stores Terraform state files with versioning enabled
-- **DynamoDB Table**: Provides state locking to prevent concurrent modifications
-
-**Variables:**
-
-- `bucket_name`: Name of the S3 bucket
-- `table_name`: Name of the DynamoDB table
-
-### VPC Module
-
-Creates networking infrastructure:
-
-- **VPC**: Virtual private cloud with DNS support
-- **Public Subnets**: Three subnets across availability zones with internet
-  access
-- **Private Subnets**: Three subnets for secure resources
-- **Internet Gateway**: Provides internet connectivity for public subnets
-- **Route Tables**: Configure routing for public subnets
-
-**Variables:**
-
-- `vpc_cidr_block`: CIDR block for the VPC (e.g., "10.0.0.0/16")
-- `public_subnets`: List of public subnet CIDR blocks
-- `private_subnets`: List of private subnet CIDR blocks
-- `availability_zones`: List of availability zones
-- `vpc_name`: Name tag for VPC resources
-
-### ECR Module
-
-Creates Docker image registry:
-
-- **ECR Repository**: Container image registry with image scanning
-- **Lifecycle Policy**: Automatically cleans up old images (keeps last 10 tagged
-  images)
-
-**Variables:**
-
-- `ecr_name`: Name of the ECR repository
-- `scan_on_push`: Enable image scanning on push (default: true)
-
-**Outputs:**
-
-- `repository_url`: URL of the ECR repository
-- `repository_arn`: ARN of the ECR repository
-
-### EKS Module
-
-Creates Kubernetes cluster:
-
-- **EKS Cluster**: Managed Kubernetes cluster with public and private API
-  endpoints
-- **IAM Roles**: Cluster and node group IAM roles with required policies
-- **Node Group**: Worker nodes with auto-scaling configuration
-
-**Variables:**
-
-- `cluster_name`: Name of the EKS cluster
-- `subnet_ids`: List of subnet IDs for the cluster
-- `instance_type`: EC2 instance type for worker nodes
-- `desired_size`: Desired number of worker nodes
-- `min_size`: Minimum number of worker nodes
-- `max_size`: Maximum number of worker nodes
-
-**Outputs:**
-
-- `eks_cluster_endpoint`: API endpoint for the cluster
-- `eks_cluster_name`: Name of the cluster
-- `eks_node_role_arn`: IAM role ARN for worker nodes
-
-## Helm Chart Components
-
-### Deployment
-
-The Django application deployment includes:
-
-- Image from ECR (configurable via `values.yaml`)
-- ConfigMap integration via `envFrom`
-- Resource limits and requests
-- Container port configuration
-
-### Service
-
-LoadBalancer service provides external access to the application:
-
-- Type: `LoadBalancer`
-- Port: 80
-- Target Port: 8000
-
-### Horizontal Pod Autoscaler (HPA)
-
-Automatically scales pods based on CPU utilization:
-
-- **Min Replicas**: 2
-- **Max Replicas**: 6
-- **Target CPU**: 70%
-
-HPA can be enabled/disabled via `values.yaml`.
-
-### ConfigMap
-
-Contains environment variables for the Django application:
-
-- Database connection settings (POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER,
-  POSTGRES_DB, POSTGRES_PASSWORD)
-- Allowed hosts configuration
-- Application-specific settings
-
-All variables are migrated from topic 4 environment configuration.
-
-## Customization
-
-### Update values.yaml
-
-Edit `lesson-7/charts/django-app/values.yaml` to customize:
-
-```yaml
-image:
-  repository: <your-ecr-repository-url>
-  tag: latest
-  pullPolicy: IfNotPresent
-
-service:
-  type: LoadBalancer
-  port: 80
-  targetPort: 8000
-
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 6
-  targetCPUUtilization: 70
-
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 250m
-    memory: 256Mi
-
-config:
-  POSTGRES_PORT: "5432"
-  POSTGRES_HOST: postgres
-  POSTGRES_USER: django_user
-  POSTGRES_DB: django_db
-  POSTGRES_PASSWORD: <your-password>
-```
-
-## Useful Commands
-
-### Terraform
+If you haven't initialized a Git repository yet:
 
 ```bash
-terraform init          # Initialize Terraform
-terraform plan          # Preview changes
-terraform apply         # Apply changes
-terraform destroy       # Destroy all resources
-terraform output        # Show output values
+# Initialize Git repository
+git init
+
+# Add all files
+git add .
+
+# Create initial commit
+git commit -m "Initial commit: CI/CD project with Jenkins and Argo CD"
 ```
 
-### Kubernetes
+### Connect to GitHub
 
-```bash
-kubectl get nodes                    # List cluster nodes
-kubectl get pods                     # List pods
-kubectl get services                 # List services
-kubectl get hpa                      # List HPA resources
-kubectl logs <pod-name>              # View pod logs
-kubectl describe pod <pod-name>      # Describe pod details
-kubectl get configmap                # List ConfigMaps
-```
+1. **Create a new repository on GitHub:**
 
-### Helm
+   - Go to https://github.com/new
+   - Repository name: `devops-ci-cd` (or your preferred name)
+   - Choose public or private
+   - **Do NOT** initialize with README, .gitignore, or license (if you already
+     have files)
 
-```bash
-helm list                            # List installed releases
-helm status django-app               # Check release status
-helm upgrade django-app ./charts/django-app  # Upgrade release
-helm uninstall django-app            # Uninstall release
-helm template ./charts/django-app    # Render templates
-```
+2. **Add remote and push:**
 
-### AWS ECR
+   ```bash
+   # Add remote repository (replace with your GitHub username)
+   git remote add origin https://github.com/YOUR_USERNAME/devops-ci-cd.git
 
-```bash
-aws ecr describe-repositories        # List ECR repositories
-aws ecr list-images --repository-name lesson-7-django-app  # List images
-aws ecr describe-images --repository-name lesson-7-django-app  # Describe images
-```
+   # Create and switch to lesson-8-9 branch (as used in Jenkinsfile)
+   git checkout -b lesson-8-9
 
-## Troubleshooting
+   # Push to GitHub
+   git push -u origin lesson-8-9
+   ```
 
-### EKS Cluster Access Issues
+3. **Update terraform.tfvars:**
+   ```hcl
+   github_token  = "your_github_personal_access_token"
+   github_username  = "your_github_username"
+   github_repo_url = "https://github.com/YOUR_USERNAME/devops-ci-cd.git"
+   ```
 
-If you cannot access the cluster:
+### Creating GitHub Personal Access Token
 
-```bash
-aws eks update-kubeconfig --region us-east-1 --name eks-cluster-lesson-7
-kubectl get nodes
-```
+1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens
+   (classic)
+2. Click "Generate new token (classic)"
+3. Give it a name (e.g., "Jenkins CI/CD")
+4. Select scopes:
+   - ✅ `repo` (Full control of private repositories)
+   - ✅ `workflow` (if needed)
+5. Click "Generate token"
+6. **Copy the token immediately** (you won't see it again)
+7. Use this token in your `terraform.tfvars` file
 
-### Image Pull Errors
+### Important Notes
 
-Ensure your ECR repository URL is correct in `values.yaml` and that worker nodes
-have the ECR read-only policy attached (automatically configured by the EKS
-module).
+- **Never commit sensitive data:**
 
-### Pod Not Starting
+  - The `.gitignore` file already excludes:
+    - `.env` files
+    - `*.tfstate` files
+    - `.terraform/` directory
+  - **Never commit `terraform.tfvars`** (it contains sensitive tokens)
+  - Always use `terraform.tfvars.example` as a template
 
-Check pod logs:
+- **Branch naming:**
+  - The Jenkinsfile uses the `lesson-8-9` branch
+  - Make sure this branch exists in your repository
+  - You can change the branch name in Jenkinsfile if needed
 
-```bash
-kubectl logs <pod-name>
-kubectl describe pod <pod-name>
-```
+## Project Status
 
-### HPA Not Scaling
+✅ **Project is ready for deployment!**
 
-Verify metrics-server is installed:
+### What's Included:
 
-```bash
-kubectl get deployment metrics-server -n kube-system
-```
+- ✅ All Terraform modules (VPC, EKS, ECR, Jenkins, Argo CD)
+- ✅ Helm charts for Django application
+- ✅ Jenkinsfile for CI/CD pipeline
+- ✅ Docker configuration for Django app
+- ✅ All comments translated to English
+- ✅ Complete documentation in README
 
-If not installed:
+### Before First Deployment:
 
-```bash
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-```
+1. ✅ Install all prerequisites (see above)
+2. ✅ Configure AWS CLI (`aws configure`)
+3. ✅ Create GitHub repository and get Personal Access Token
+4. ✅ Create `terraform.tfvars` file with your credentials
+5. ✅ Initialize and apply Terraform configuration
 
-## Cleanup
+### After Deployment:
 
-To destroy all resources:
+1. Configure Jenkins credentials in Jenkins UI:
 
-```bash
-# Uninstall Helm release
-helm uninstall django-app
+   - Go to Jenkins → Manage Jenkins → Credentials
+   - Add credentials with ID `github-token`
+   - Type: Username with password
+   - Username: Your GitHub username
+   - Password: Your GitHub Personal Access Token
 
-# Destroy Terraform resources
-cd lesson-7
-terraform destroy
-```
+2. Create Jenkins pipeline:
 
-**Warning**: This will delete all resources including the EKS cluster, ECR
-repository, and all application data.
+   - Create new Pipeline job
+   - Point to your repository's Jenkinsfile
+   - Configure environment variables:
+     - `ECR_REGISTRY`: Your ECR registry URL (from Terraform output)
+     - `IMAGE_NAME`: Your ECR repository name (from Terraform output)
 
-## State Management
-
-This project uses S3 backend with DynamoDB locking:
-
-- State files are stored remotely in S3
-- State locking prevents concurrent modifications
-- State versioning is enabled in S3
-- State encryption is enabled
-
-**Note**: The backend configuration in `backend.tf` is commented out by default.
-Uncomment and configure it before initializing if you want to use remote state.
-
-## Additional Notes
-
-- All resources are tagged for identification
-- Comments in code are in English
-- Follow AWS best practices for resource naming and organization
-- Ensure proper IAM permissions for Terraform to create resources
-- Worker nodes use lifecycle hooks to ignore changes in `desired_size` to
-  prevent conflicts
+3. Access Argo CD:
+   - Get Argo CD URL and admin password (see "Accessing Argo CD" section)
+   - Argo CD will automatically sync your application from Git
