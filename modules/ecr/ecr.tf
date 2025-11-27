@@ -1,7 +1,7 @@
 resource "aws_ecr_repository" "ecr" {
   name = var.repository_name
-  force_delete = var.force_delete 
-  image_tag_mutability = var.image_tag_mutability
+  force_delete = var.force_delete              # Allows deleting repo along with images
+  image_tag_mutability = var.image_tag_mutability      # IMMUTABLE or MUTABLE
 
   image_scanning_configuration {
     scan_on_push = var.scan_on_push

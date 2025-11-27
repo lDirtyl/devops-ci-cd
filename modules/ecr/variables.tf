@@ -11,7 +11,7 @@ variable "scan_on_push" {
 
 variable "image_tag_mutability" {
   type = string
-  description = "IMMUTABLE blocks changing existing tags; MUTABLE allows overwrite."
+  description = "IMMUTABLE will block changing existing tags; MUTABLE allows overwrite."
   default = "MUTABLE"
 }
 

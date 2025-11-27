@@ -33,3 +33,4 @@ variable "min_size" {
   description = "Minimum number of worker nodes"
   default = 1
 }
+

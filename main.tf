@@ -49,13 +49,13 @@ module "eks" {
   cluster_name = var.cluster_name
   subnet_ids = module.vpc.public_subnet_ids
   instance_type = var.instance_type
-  desired_size = 1
+  desired_size = 2
   max_size = 2
   min_size = 1
 }
 
 data "aws_eks_cluster" "eks" {
-  name  = module.eks.cluster_name
+  name = module.eks.cluster_name
   depends_on = [module.eks]
 }
 

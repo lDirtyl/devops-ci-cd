@@ -32,10 +32,10 @@ resource "aws_iam_role_policy_attachment" "ebs_irsa_policy" {
   role = aws_iam_role.ebs_csi_irsa_role.name
 }
 
-# Pull the latest compatible version for the k8s version in the cluster
+# Pull latest compatible version for k8s version in cluster
 # data "aws_eks_addon_version" "ebs" {
 #   addon_name = "aws-ebs-csi-driver"
-#   kubernetes_version = aws_eks_cluster.eks.version # for example 1.33
+#   kubernetes_version = aws_eks_cluster.eks.version # e.g. 1.33
 #   most_recent = true
 # }
 

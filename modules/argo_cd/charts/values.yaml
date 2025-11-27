@@ -1,30 +1,36 @@
 applications:
-  - name: example-app # application name in Argo CD
-    namespace: default # namespace in Kubernetes
-    project: default # Argo CD project name
-    source: # application source code
+  - name: example-app   # application name in Argo CD
+    namespace: default  # namespace in Kubernetes
+    project: default    # Argo CD project name
+    source:             # application code source
       # repoURL: https://github.com/YOUR_USERNAME/example-repo.git
       repoURL: ${github_repo_url} # link to Git repository where Helm chart or Kubernetes manifests are stored
-      path: charts/django-app # path inside the repository to the required chart or YAML files
-      targetRevision: lesson-8-9 # Git branch or tag from which to take the application (e.g., main)
+      path: charts/django-app     # path within repository to required chart or YAML files
+      targetRevision: lesson-10    # Git branch or tag from which to take application (e.g., main)
       helm:
-        valueFiles: # list of YAML files with settings that will be passed to the Helm chart
+        valueFiles:               # list of YAML files with settings that will be passed to Helm chart
           - values.yaml
-    destination: # specifies where to deploy the application
-      server: https://kubernetes.default.svc # Kubernetes API server address. For internal cluster, https://kubernetes.default.svc is used
-      namespace: default # Kubernetes namespace for this specific application
-    syncPolicy: # synchronization policy
-      automated: # enables automatic application of changes
-        prune: true # remove resources that are no longer described in Git
-        selfHeal: true # automatically fix deviations from Git state if something was manually changed in the cluster
+        values: |
+          config:
+            POSTGRES_HOST: "${rds_host}"
+            POSTGRES_USER: "${rds_username}"
+            POSTGRES_NAME: "${rds_db_name}"
+            POSTGRES_PASSWORD: "${rds_password}"
+    destination:                              # specifies where exactly to deploy the application
+      server: https://kubernetes.default.svc  # Kubernetes API server address. For internal cluster https://kubernetes.default.svc is used
+      namespace: default                      # Kubernetes namespace for this specific application
+    syncPolicy:           # synchronization policy
+      automated:          # enables automatic application of changes
+        prune: true       # remove resources that are no longer described in Git
+        selfHeal: true    # automatically fix deviations from Git state if something was manually changed in cluster
 
 repositories:
-  - name: example-app # repository name for internal use
+  - name: example-app         # repository name for internal use
     # url: https://github.com/YOUR_USERNAME/example-repo.git
-    url: ${github_repo_url} # full URL of the Git repository
-    username: ${github_username} # credentials for accessing the private repository
+    url: ${github_repo_url}   # full URL address of Git repository
+    username: ${github_username}  # credentials for accessing private repository
     password: ${github_token}
 
 repoConfig:
-  insecure: "true" # allows connection to the repository without SSL certificate verification. Not recommended for production
-  enableLfs: "true" # allows using Git LFS (Large File Storage) if large files are stored in the repository
+  insecure: "true"    # allows connection to repository without SSL certificate verification. Not recommended for production
+  enableLfs: "true"   # allows use of Git LFS (Large File Storage) if repository stores large files

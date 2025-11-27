@@ -9,18 +9,18 @@ variable "cluster_name" {
 }
 
 variable "oidc_provider_arn" {
-  description = "ARN of OIDC provider for IRSA"
+  description = "OIDC provider ARN for IRSA"
   type = string
 }
 
 variable "oidc_provider_url" {
-  description = "URL of OIDC provider for IRSA"
+  description = "OIDC provider URL for IRSA"
   type = string
 }
 
 variable "github_username" {
   description = "GitHub username"
-  type  = string
+  type = string
   default = ""
   sensitive = true
 }

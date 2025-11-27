@@ -9,6 +9,6 @@ output "repository_arn" {
 }
 
 output "registry_id" {
-  description = "ECR registry ID"
+  description = "ECR registry identifier"
   value = aws_ecr_repository.ecr.registry_id
 }
