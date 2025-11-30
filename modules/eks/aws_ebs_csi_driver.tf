@@ -1,11 +1,9 @@
-# Create IAM OIDC Provider for IRSA
 resource "aws_iam_openid_connect_provider" "oidc" {
   url = aws_eks_cluster.eks.identity[0].oidc[0].issuer
   client_id_list = ["sts.amazonaws.com"]
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da0ecd6c6f9"]
 }
 
-# IAM role for EBS CSI Driver
 resource "aws_iam_role" "ebs_csi_irsa_role" {
   name = "${var.cluster_name}-ebs-csi-irsa-role"
 
@@ -26,20 +24,17 @@ resource "aws_iam_role" "ebs_csi_irsa_role" {
   })
 }
 
-# Attach official policy to this role
 resource "aws_iam_role_policy_attachment" "ebs_irsa_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
   role = aws_iam_role.ebs_csi_irsa_role.name
 }
 
-# Pull latest compatible version for k8s version in cluster
 # data "aws_eks_addon_version" "ebs" {
 #   addon_name = "aws-ebs-csi-driver"
-#   kubernetes_version = aws_eks_cluster.eks.version # e.g. 1.33
+#   kubernetes_version = aws_eks_cluster.eks.version
 #   most_recent = true
 # }
 
-# EKS Addon with attached IRSA IAM role
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name = aws_eks_cluster.eks.name
   addon_name = "aws-ebs-csi-driver"

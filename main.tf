@@ -16,18 +16,16 @@ terraform {
 }
 
 provider "aws" {
-    profile = "default"  # or another profile from ~/.aws/credentials
+    profile = "default"
     region = var.region
 }
 
-# Connect S3 and DynamoDB module
 # module "s3_backend" {
 #   source = "./modules/s3-backend"
 #   bucket_name = "andrii-mashtaler-terraform-state-lesson-7"
 #   table_name = "terraform-locks"
 # }
 
-# Connect VPC module
 module "vpc" {
   source = "./modules/vpc"
   vpc_cidr_block = "10.0.0.0/16"
@@ -37,7 +35,6 @@ module "vpc" {
   vpc_name = "lesson-8-9-vpc"
 }
 
-# Connect ECR module
 module "ecr" {
   source = "./modules/ecr"
   repository_name = var.repository_name

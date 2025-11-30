@@ -1,5 +1,3 @@
-#-------------Backend-----------------
-
 # output "s3_bucket_name" {
 #   description = "S3 bucket with Terraform state"
 #   value = module.s3_backend.s3_bucket_name
@@ -10,7 +8,6 @@
 #   value = module.s3_backend.dynamodb_table_name
 # }
 
-#-------------VPC-----------------
 output "vpc_id" {
   description = "VPC ID"
   value = module.vpc.vpc_id
@@ -26,13 +23,11 @@ output "private_subnets" {
   value = module.vpc.private_subnets
 }
 
-#-------------ECR-----------------
 output "ecr_repository_url" {
   description = "ECR repository URL"
   value = module.ecr.repository_url
 }
 
-#-------------EKS-----------------
 output "eks_cluster_id" {
   description = "EKS cluster ID"
   value = module.eks.cluster_id
@@ -66,7 +61,6 @@ output "oidc_provider_url" {
   value = module.eks.oidc_provider_url
 }
 
-#-------------Jenkins-----------------
 output "jenkins_release" {
   value = module.jenkins.jenkins_release_name
 }
@@ -74,8 +68,6 @@ output "jenkins_release" {
 output "jenkins_namespace" {
   value = module.jenkins.jenkins_namespace
 }
-
-#-------------ArgoCD-----------------
 
 output "argocd_namespace" {
   description = "ArgoCD namespace"

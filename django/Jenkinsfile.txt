@@ -9,7 +9,7 @@ metadata:
     some-label: jenkins-kaniko
 spec:
   serviceAccountName: jenkins-sa
-      containers:
+  containers:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:v1.16.0-debug
       imagePullPolicy: Always
@@ -17,19 +17,18 @@ spec:
         - sleep
       args:
         - 99d
+     # Lightweight container that has git + coreutils
     - name: git
-      image: alpine/git:latest
-      command:
-        - sleep
-      args:
-        - 99d
+      image: alpine/git
+      command: ["cat"]       # keep it idle so Jenkins can exec into it
+      tty: true
 """
     }
   }
 
   environment {
-    ECR_REGISTRY = "${env.ECR_REGISTRY}"
-    IMAGE_NAME   = "${env.IMAGE_NAME}"
+    ECR_REGISTRY = "113504009718.dkr.ecr.us-east-1.amazonaws.com"
+    IMAGE_NAME   = "ecr-repo-django"
     IMAGE_TAG    = "v1.0.${BUILD_NUMBER}"
 
     COMMIT_EMAIL = "jenkins@localhost"
@@ -41,6 +40,7 @@ spec:
       steps {
         container('kaniko') {
           sh '''
+            cd django
             /kaniko/executor \\
               --context `pwd` \\
               --dockerfile `pwd`/Dockerfile \\
@@ -56,11 +56,13 @@ spec:
     stage('Update Chart Tag in Git') {
       steps {
         container('git') {
-          withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
+          withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
             sh '''
-              git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/devops-ci-cd.git
-              cd devops-ci-cd
-              git checkout lesson-8-9 || git checkout -b lesson-8-9
+              echo $USERNAME
+              git clone https://$USERNAME:$PASSWORD@github.com/lDirtyl/devops-ci-cd.git
+              set -x
+              cd devops
+              git checkout final-project
               cd charts/django-app
 
               sed -i "s/tag: .*/tag: $IMAGE_TAG/" values.yaml
@@ -70,7 +72,7 @@ spec:
 
               git add values.yaml
               git commit -m "Update image tag to $IMAGE_TAG"
-              git push origin lesson-8-9
+              git push origin final-project
             '''
           }
         }

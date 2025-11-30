@@ -1,9 +1,9 @@
 # terraform {
 #   backend "s3" {
-#     bucket = "andrii-mashtaler-terraform-state-bucket-lesson-10"
-#     key = "lesson-10/terraform.tfstate"
+#     bucket = "terraform-state-bucket-andrii-mashtaler"
+#     key = "terraform.tfstate"
 #     region = "us-east-1"
-#     dynamodb_table = "terraform-locks"
+#     dynamodb_table = "use_lockfile"
 #     encrypt = true
 #   }
 # }
